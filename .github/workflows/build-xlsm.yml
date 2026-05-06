@@ -1,0 +1,47 @@
+name: Excel VBA CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-xlsm:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Enable PowerShell script execution
+      shell: pwsh
+      run: |
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
+
+    - name: Import VBA modules into workbook
+      shell: pwsh
+      run: |
+        pwsh tools/import_vba.ps1 `
+          -WorkbookPath "workbook/Template.xlsm" `
+          -SourceFolder "vba"
+
+    - name: Export VBA modules (optional validation)
+      shell: pwsh
+      run: |
+        pwsh tools/export_vba.ps1 `
+          -WorkbookPath "workbook/Template.xlsm" `
+          -OutputFolder "vba_exported"
+
+    - name: Upload rebuilt workbook
+      uses: actions/upload-artifact@v4
+      with:
+        name: rebuilt-xlsm
+        path: workbook/Template.xlsm
+
+    - name: Upload exported VBA modules
+      uses: actions/upload-artifact@v4
+      with:
+        name: exported-vba
+        path: vba_exported
